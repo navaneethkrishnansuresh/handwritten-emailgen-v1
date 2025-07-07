@@ -7,7 +7,7 @@ vertical handwritten image.
 Features
 ========
 ✓ Uses default QEDavidReidCAP.ttf + bkg1.jpg in repo root
-✓ Optional uploads to override font / background
+✓ Optional font override upload (.ttf)
 ✓ Adjustable ink colour, tilt range, jitter
 ✓ Live preview and PNG download
 """
@@ -31,7 +31,6 @@ def detect_white_space(image):
         return (0, 0, arr.shape[1], arr.shape[0])
     return (xs.min(), ys.min(), xs.max(), ys.max())
 
-
 def calculate_font_and_wrap(draw, text, font_path, max_width, max_height):
     for size in range(70, 20, -2):
         font = ImageFont.truetype(font_path, size)
@@ -48,14 +47,10 @@ def calculate_font_and_wrap(draw, text, font_path, max_width, max_height):
             return font, lines
     return ImageFont.truetype(font_path, 20), text.split("\n")
 
-
 def add_jitter(x, y, jitter=2):
     return x + random.randint(-jitter, jitter), y + random.randint(-jitter, jitter)
 
-
-def draw_text_with_effects(
-    draw, line, position, font, color, overlap=False, fade=False
-):
+def draw_text_with_effects(draw, line, position, font, color, overlap=False, fade=False):
     x, y = position
     for idx, char in enumerate(line):
         char_width = font.getbbox(char)[2] - font.getbbox(char)[0]
@@ -66,7 +61,6 @@ def draw_text_with_effects(
             draw.text((x + 0.5, cy), char, font=font, fill=fill)
         x += char_width - 1
 
-
 def handwriting_vertical(
     text: str,
     font_path: str = "QEDavidReidCAP.ttf",
@@ -75,23 +69,17 @@ def handwriting_vertical(
     tilt_range: float = 2.0,
     jitter: int = 2,
 ):
-    # Load and rotate paper
     img = Image.open(background_path).convert("RGBA").rotate(270, expand=True)
     draw = ImageDraw.Draw(img)
 
-    # Safe writing box
     l, t, r, b = detect_white_space(img)
     pad = 40
     safe_left, safe_top = l + pad + 200, t + pad + 100
     safe_right, safe_bottom = r + 600 - pad, b - pad
     max_w, max_h = safe_right - safe_left, safe_bottom - safe_top
 
-    # Wrap + font size search
-    font, lines = calculate_font_and_wrap(
-        draw, text, font_path, max_w, max_h
-    )
+    font, lines = calculate_font_and_wrap(draw, text, font_path, max_w, max_h)
 
-    # Draw each line
     y = safe_top
     ink_rgba = (*ImageColor.getrgb(ink_hex), 255)
     for i, line in enumerate(lines):
@@ -113,7 +101,6 @@ def handwriting_vertical(
             jy += random.randint(3, 10)
         y += font.size + (25 if line.strip() == "" else 12)
 
-    # Final tilt + flatten
     img = img.rotate(
         random.uniform(-tilt_range, tilt_range),
         expand=True,
@@ -122,14 +109,12 @@ def handwriting_vertical(
     )
     return img.convert("RGB")
 
-
 # ───────────────────────────────────────────────────────
 # Streamlit UI
 # ───────────────────────────────────────────────────────
 st.set_page_config(page_title="Vertical Handwriting Generator", layout="centered")
 st.title("✍️ Vertical Handwriting Generator")
 
-# 1️⃣ Text input
 default_text = """Hey Mia,
 
 Just wanted to say thanks again for last weekend—it was honestly one of the best trips I’ve had in a while. The hike, the food, the absolutely chaotic game of Uno—10/10 would recommend.
@@ -143,7 +128,6 @@ Jason
 """
 text = st.text_area("Your handwritten message", value=default_text, height=250)
 
-# 2️⃣ Advanced options (accordion)
 with st.expander("🛠️ Advanced Settings", expanded=False):
     col1, col2, col3 = st.columns(3)
     with col1:
@@ -153,16 +137,12 @@ with st.expander("🛠️ Advanced Settings", expanded=False):
     with col3:
         jitter = st.slider("Jitter (px)", 0, 6, 2, 1)
 
-    # Optional overrides
     font_file = st.file_uploader("Override font (.ttf)", type=["ttf"])
-    bg_file = st.file_uploader("Override background (.jpg/.png)", type=["jpg", "jpeg", "png"])
 
-# 3️⃣ Generate button
 if st.button("🖋️ Generate"):
     if not text.strip():
         st.warning("Please enter some text.")
     else:
-        # Paths: default or temp override
         font_path = "QEDavidReidCAP.ttf"
         bg_path = "bkg1.jpg"
 
@@ -170,13 +150,6 @@ if st.button("🖋️ Generate"):
             font_path = "/tmp/font.ttf"
             with open(font_path, "wb") as f:
                 f.write(font_file.read())
-
-        if bg_file:
-            bg_path = "/tmp/bg"
-            ext = ".png" if bg_file.type == "image/png" else ".jpg"
-            bg_path += ext
-            with open(bg_path, "wb") as f:
-                f.write(bg_file.read())
 
         with st.spinner("Rendering handwriting..."):
             img = handwriting_vertical(
