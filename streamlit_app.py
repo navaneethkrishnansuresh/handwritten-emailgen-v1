@@ -1,151 +1,116 @@
+# app.py
 import streamlit as st
-import pandas as pd
-import math
-from pathlib import Path
+from PIL import Image, ImageDraw, ImageFont
+import numpy as np
+import textwrap
+import random
+import io
+import os
 
-# Set the title and favicon that appear in the Browser's tab bar.
-st.set_page_config(
-    page_title='GDP dashboard',
-    page_icon=':earth_americas:', # This is an emoji shortcode. Could be a URL too.
-)
+# ──────────────────────────
+# Original helper functions
+# ──────────────────────────
+def detect_white_space(image):
+    img = image.convert("L")
+    arr = np.array(img)
+    ys, xs = np.where(arr > 200)
+    if xs.size == 0 or ys.size == 0:
+        return (0, 0, arr.shape[1], arr.shape[0])
+    return (xs.min(), ys.min(), xs.max(), ys.max())
 
-# -----------------------------------------------------------------------------
-# Declare some useful functions.
+def calculate_font_and_wrap(draw, text, font_path, max_w, max_h):
+    for size in range(70, 20, -2):
+        font = ImageFont.truetype(font_path, size)
+        lines = []
+        for para in text.split("\n"):
+            if para.strip() == "":
+                lines.append("")
+            else:
+                line_w = int(max_w / (size * 0.55))
+                lines += textwrap.wrap(para, width=line_w)
+        bbox = draw.multiline_textbbox((0, 0), "\n".join(lines), font=font, spacing=20)
+        w, h = bbox[2] - bbox[0], bbox[3] - bbox[1]
+        if w <= max_w and h <= max_h:
+            return font, lines
+    return ImageFont.truetype(font_path, 20), text.split("\n")
 
-@st.cache_data
-def get_gdp_data():
-    """Grab GDP data from a CSV file.
+def add_jitter(x, y, jitter=2):
+    return x + random.randint(-jitter, jitter), y + random.randint(-jitter, jitter)
 
-    This uses caching to avoid having to read the file every time. If we were
-    reading from an HTTP endpoint instead of a file, it's a good idea to set
-    a maximum age to the cache with the TTL argument: @st.cache_data(ttl='1d')
-    """
+def draw_text_with_effects(draw, line, pos, font, color, overlap=False, fade=False):
+    x, y = pos
+    for idx, ch in enumerate(line):
+        w = font.getbbox(ch)[2] - font.getbbox(ch)[0]
+        cy = y - 0.5 if overlap and ch.lower() in {"y", "g", "j"} else y
+        fill = (*color[:3], 180) if fade and 4 < idx < len(line) - 4 else color
+        draw.text((x, cy), ch, font=font, fill=fill)
+        if random.random() < random.uniform(0.08, 0.4):
+            draw.text((x + 0.5, cy), ch, font=font, fill=fill)
+        x += w - 1
 
-    # Instead of a CSV on disk, you could read from an HTTP endpoint here too.
-    DATA_FILENAME = Path(__file__).parent/'data/gdp_data.csv'
-    raw_gdp_df = pd.read_csv(DATA_FILENAME)
+def handwriting_vertical(text, font_path, bg_path):
+    img = Image.open(bg_path).convert("RGBA").rotate(270, expand=True)
+    draw = ImageDraw.Draw(img)
 
-    MIN_YEAR = 1960
-    MAX_YEAR = 2022
+    l, t, r, b = detect_white_space(img)
+    pad = 40
+    safe_left   = l + pad + 200
+    safe_right  = r + 600 - pad
+    safe_top    = t + pad + 100
+    safe_bottom = b - pad
 
-    # The data above has columns like:
-    # - Country Name
-    # - Country Code
-    # - [Stuff I don't care about]
-    # - GDP for 1960
-    # - GDP for 1961
-    # - GDP for 1962
-    # - ...
-    # - GDP for 2022
-    #
-    # ...but I want this instead:
-    # - Country Name
-    # - Country Code
-    # - Year
-    # - GDP
-    #
-    # So let's pivot all those year-columns into two: Year and GDP
-    gdp_df = raw_gdp_df.melt(
-        ['Country Code'],
-        [str(x) for x in range(MIN_YEAR, MAX_YEAR + 1)],
-        'Year',
-        'GDP',
+    font, lines = calculate_font_and_wrap(
+        draw, text, font_path,
+        safe_right - safe_left,
+        safe_bottom - safe_top
     )
 
-    # Convert years from string to integers
-    gdp_df['Year'] = pd.to_numeric(gdp_df['Year'])
-
-    return gdp_df
-
-gdp_df = get_gdp_data()
-
-# -----------------------------------------------------------------------------
-# Draw the actual page
-
-# Set the title that appears at the top of the page.
-'''
-# :earth_americas: GDP dashboard
-
-Browse GDP data from the [World Bank Open Data](https://data.worldbank.org/) website. As you'll
-notice, the data only goes to 2022 right now, and datapoints for certain years are often missing.
-But it's otherwise a great (and did I mention _free_?) source of data.
-'''
-
-# Add some spacing
-''
-''
-
-min_value = gdp_df['Year'].min()
-max_value = gdp_df['Year'].max()
-
-from_year, to_year = st.slider(
-    'Which years are you interested in?',
-    min_value=min_value,
-    max_value=max_value,
-    value=[min_value, max_value])
-
-countries = gdp_df['Country Code'].unique()
-
-if not len(countries):
-    st.warning("Select at least one country")
-
-selected_countries = st.multiselect(
-    'Which countries would you like to view?',
-    countries,
-    ['DEU', 'FRA', 'GBR', 'BRA', 'MEX', 'JPN'])
-
-''
-''
-''
-
-# Filter the data
-filtered_gdp_df = gdp_df[
-    (gdp_df['Country Code'].isin(selected_countries))
-    & (gdp_df['Year'] <= to_year)
-    & (from_year <= gdp_df['Year'])
-]
-
-st.header('GDP over time', divider='gray')
-
-''
-
-st.line_chart(
-    filtered_gdp_df,
-    x='Year',
-    y='GDP',
-    color='Country Code',
-)
-
-''
-''
-
-
-first_year = gdp_df[gdp_df['Year'] == from_year]
-last_year = gdp_df[gdp_df['Year'] == to_year]
-
-st.header(f'GDP in {to_year}', divider='gray')
-
-''
-
-cols = st.columns(4)
-
-for i, country in enumerate(selected_countries):
-    col = cols[i % len(cols)]
-
-    with col:
-        first_gdp = first_year[first_year['Country Code'] == country]['GDP'].iat[0] / 1000000000
-        last_gdp = last_year[last_year['Country Code'] == country]['GDP'].iat[0] / 1000000000
-
-        if math.isnan(first_gdp):
-            growth = 'n/a'
-            delta_color = 'off'
-        else:
-            growth = f'{last_gdp / first_gdp:,.2f}x'
-            delta_color = 'normal'
-
-        st.metric(
-            label=f'{country} GDP',
-            value=f'{last_gdp:,.0f}B',
-            delta=growth,
-            delta_color=delta_color
+    y = safe_top
+    for i, line in enumerate(lines):
+        x = safe_left + (25 if i % 5 == 0 else 0)
+        jx, jy = add_jitter(x, y)
+        draw_text_with_effects(
+            draw, line, (jx, jy), font,
+            color=(0, 0, 138, 255),
+            overlap=random.random() < 0.85,
+            fade=random.random() < 0.3
         )
+        if (i + 1 < len(lines)) and (lines[i + 1].strip() == ""):
+            jx += random.randint(20, 60)
+            jy += random.randint(3, 10)
+        y += font.size + (25 if line.strip() == "" else 12)
+
+    img = img.rotate(random.uniform(-2.0, 2.0), expand=True,
+                     resample=Image.BICUBIC, fillcolor="white")
+    return img.convert("RGB")
+
+# ──────────────────────────
+# Streamlit UI
+# ──────────────────────────
+st.set_page_config(page_title="Handwriting Generator", layout="centered")
+st.title("🖋️ Vertical Handwriting Generator")
+
+text_input = st.text_area("Enter text", height=250)
+
+if st.button("Generate"):
+    if not text_input.strip():
+        st.warning("Please enter some text first.")
+    elif not os.path.exists("bkg1.jpg") or not os.path.exists("QEDavidReidCAP.ttf"):
+        st.error("Missing `bkg1.jpg` or `QEDavidReidCAP.ttf` in project root.")
+    else:
+        with st.spinner("Rendering…"):
+            final_img = handwriting_vertical(
+                text_input,
+                font_path="QEDavidReidCAP.ttf",
+                bg_path="bkg1.jpg"
+            )
+            buf = io.BytesIO()
+            final_img.save(buf, format="PNG")
+            st.image(final_img, use_column_width=True)
+            st.download_button(
+                "📥 Download PNG",
+                data=buf.getvalue(),
+                file_name="handwriting.png",
+                mime="image/png"
+            )
+
