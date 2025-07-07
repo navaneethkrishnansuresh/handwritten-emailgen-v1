@@ -16,7 +16,7 @@ No fancy AI. No cloud. Just pure visual storytelling.
 
 Here’s an example of a handwritten image generated using the default font and background with the following advanced settings
 
-<img src="assets/sample_output.png" alt="Sample Output" width="400"/>
+<img src="assets/sample_output_extended.png" alt="Sample Output" width="400"/>
 
 | Setting               | Value                     |
 |-----------------------|---------------------------|
@@ -24,7 +24,7 @@ Here’s an example of a handwritten image generated using the default font and 
 | 🎚️ Tilt Range         | 0.4°                      |
 | 🔀 Jitter             | 5px                       |
 | 🖋️ Font Override      | None                      |
-| 📄 Background Override| None                      |
+
 
 ## 🎯 Use Cases
 
@@ -41,7 +41,7 @@ Here’s an example of a handwritten image generated using the default font and 
 | ✅ Vertical layout        | Top-to-bottom handwriting flow |
 | ✅ Realistic strokes      | Ink fading, bold strokes, overlap, jitter |
 | ✅ Custom fonts           | Upload your own `.ttf` handwriting font |
-| ✅ Paper backgrounds      | Use any JPG/PNG image as textured paper |
+| ✅ Paper backgrounds      | Use any JPG/PNG image as textured paper (Tweaks needed) |
 | ✅ Ink customization      | Pick ink color via color picker |
 | ✅ Tilt + Jitter control  | Adjust realism with sliders |
 | ✅ PNG export             | One-click download of the result |
@@ -58,8 +58,7 @@ Here’s an example of a handwritten image generated using the default font and 
 🎨 Ink color [color picker]  
 🔄 Tilt range [0.0 to 5.0 slider]  
 🔀 Jitter [0 to 6 slider]  
-📁 Upload font (.ttf)  
-🖼️ Upload background (.jpg/.png)  
+📁 Upload font (.ttf)   
 
 [🖋️ Generate] → [📥 Download PNG]
 
@@ -92,7 +91,6 @@ streamlit run app.py
 | What                    | How                                                    |
 |-------------------------|---------------------------------------------------------|
 | 🖋️ Use a different font  | Replace `QEDavidReidCAP.ttf` or upload via the UI       |
-| 📄 Change background     | Replace `bkg1.jpg` or upload via the UI                 |
 | 🎨 Ink color             | Use the color picker in the sidebar                     |
 | 🌀 Tilt / Jitter control | Adjust realism using sliders in *Advanced Settings*     |
 
