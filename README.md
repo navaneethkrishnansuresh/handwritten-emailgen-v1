@@ -96,16 +96,22 @@ streamlit run app.py
 
 ---
 
+---
+
 ## 📋 License
 
-**License: Non-Commercial Use Only**
+**License: PolyForm Noncommercial 1.0.0**
 
-This software is provided free for **personal, academic, and non-commercial** use.
+This software is free to use for **personal, academic, and non-commercial** purposes only.
 
 You **may not**:
-- Sell it  
-- Offer it as part of a paid product or SaaS  
-- Use it in any commercial offering  
+- Sell or monetize the software or its outputs  
+- Offer it as part of a commercial product, service, or API  
+- Use it in any for-profit or client-facing offering  
 
-If you want to use it commercially, contact the author at: [navaneeth@vantablan.com](mailto:navaneeth@vantablan.com)
+For commercial licensing, please contact the author:  
+📧 [navaneeth@vantablan.com](mailto:navaneeth@vantablan.com)
+
+🔗 [View Full License Terms](https://polyformproject.org/licenses/noncommercial/1.0.0)
+
 
